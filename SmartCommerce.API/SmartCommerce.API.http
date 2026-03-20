@@ -1,0 +1,6 @@
+@SmartCommerce.API_HostAddress = http://localhost:5076
+
+GET {{SmartCommerce.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

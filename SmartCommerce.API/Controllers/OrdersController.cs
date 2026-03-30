@@ -28,11 +28,7 @@ namespace SmartCommerce.API.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return Ok(new
-            {
-                result.OrderId,
-                result.TotalAmount
-            });
+            return Ok(result.Data);
         }
     }
 }

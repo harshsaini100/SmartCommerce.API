@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartCommerce.API.DTOs.Common;
 using SmartCommerce.API.DTOs.Order;
 using SmartCommerce.API.Entities;
 using SmartCommerce.API.Enums;
@@ -23,10 +24,10 @@ namespace SmartCommerce.API.Services.Implementations
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<(bool Success, string Error, int OrderId, decimal TotalAmount)> CreateOrderAsync(CreateOrderDto dto)
+        public async Task<ServiceResult<OrderResultDto>> CreateOrderAsync(CreateOrderDto dto)
         {
             if (dto.Items == null || !dto.Items.Any())
-                return (false, "Order must have at least one item", 0, 0);
+                return ServiceResult<OrderResultDto>.Failure("Order must have at least one item");
 
             var productIds = dto.Items
                 .Select(i => i.ProductId)
@@ -36,7 +37,7 @@ namespace SmartCommerce.API.Services.Implementations
             var products = await _productRepo.GetByIdsAsync(productIds);
 
             if (products.Count != productIds.Count)
-                return (false, "One or more products do not exist", 0, 0);
+                return ServiceResult<OrderResultDto>.Failure("One or more products do not exist");
 
             var productMap = products.ToDictionary(p => p.Id);
 
@@ -45,13 +46,13 @@ namespace SmartCommerce.API.Services.Implementations
                 var product = productMap[item.ProductId];
 
                 if (!product.IsActive)
-                    return (false, $"Product inactive: {product.Name}", 0, 0);
+                    return ServiceResult<OrderResultDto>.Failure($"Product inactive: {product.Name}");
 
                 if (item.Quantity <= 0)
-                    return (false, $"Invalid quantity: {product.Name}", 0, 0);
+                    return ServiceResult<OrderResultDto>.Failure($"Invalid quantity: {product.Name}");
 
                 if (product.StockQuantity < item.Quantity)
-                    return (false, $"Insufficient stock: {product.Name}", 0, 0);
+                    return ServiceResult<OrderResultDto>.Failure($"Insufficient stock: {product.Name}");
             }
 
             var order = new Order
@@ -90,10 +91,9 @@ namespace SmartCommerce.API.Services.Implementations
             }
             catch (DbUpdateConcurrencyException)
             {
-                return (false, "Stock updated by another user. Retry.", 0, 0);
+                return ServiceResult<OrderResultDto>.Failure("Stock updated by another user. Retry.");
             }
-
-            return (true, "", order.Id, order.TotalAmount);
+            return ServiceResult<OrderResultDto>.SuccessResult(new OrderResultDto { OrderId = order.Id, TotalAmount = order.TotalAmount });
         }
     }
 }

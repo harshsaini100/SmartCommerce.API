@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using SmartCommerce.API.Data;
 using SmartCommerce.API.Repositories.Implementations;
 using SmartCommerce.API.Repositories.Interfaces;
+using SmartCommerce.API.Services.Implementations;
+using SmartCommerce.API.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

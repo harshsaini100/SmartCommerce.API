@@ -27,6 +27,10 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.CategoryId);
 
+        modelBuilder.Entity<Product>()
+            .Property(p => p.RowVersion)
+            .IsRowVersion();
+
         modelBuilder.Entity<Category>()
             .HasOne(c => c.ParentCategory)
             .WithMany(c => c.Children)

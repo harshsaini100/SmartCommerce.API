@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SmartCommerce.API.DTOs.Order;
 using SmartCommerce.API.Entities;
 using SmartCommerce.API.Enums;
 using SmartCommerce.API.Repositories.Interfaces;
+using SmartCommerce.API.Services.Interfaces;
 
 namespace SmartCommerce.API.Controllers
 {
@@ -11,27 +13,26 @@ namespace SmartCommerce.API.Controllers
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase
     {
-        private readonly IOrderRepository _orderRepo;
-        private readonly IProductRepository _productRepo;
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IOrderService _orderService;
 
-        public OrdersController(
-            IOrderRepository orderRepo,
-            IProductRepository productRepo,
-            IUnitOfWork unitOfWork)
+        public OrdersController(IOrderService orderService)
         {
-            _orderRepo = orderRepo;
-            _productRepo = productRepo;
-            _unitOfWork = unitOfWork;
+            _orderService = orderService;
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(CreateOrderDto dto)
         {
-            if (dto.Items == null || !dto.Items.Any())
-                return BadRequest("Order must have at least one item");
+            var result = await _orderService.CreateOrderAsync(dto);
 
-            return Ok("Validation passed");
+            if (!result.Success)
+                return BadRequest(result.Error);
+
+            return Ok(new
+            {
+                result.OrderId,
+                result.TotalAmount
+            });
         }
     }
 }

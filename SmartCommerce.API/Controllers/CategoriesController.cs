@@ -11,10 +11,11 @@ namespace SmartCommerce.API.Controllers
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryRepository _repo;
-
-        public CategoriesController(ICategoryRepository repo)
+        private readonly IUnitOfWork _unitOfWork;
+        public CategoriesController(ICategoryRepository repo, IUnitOfWork unitOfWork)
         {
             _repo = repo;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpPost]
@@ -36,7 +37,7 @@ namespace SmartCommerce.API.Controllers
             };
 
             await _repo.AddAsync(category);
-            await _repo.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             var result = new CategoryDto
             {
@@ -85,6 +86,7 @@ namespace SmartCommerce.API.Controllers
         public async Task<IActionResult> Update(int id, UpdateCategoryDto dto)
         {
             var category = await _repo.GetByIdAsync(id);
+            var allCategories = await _repo.GetAllAsync();
 
             if (category == null)
                 return NotFound();
@@ -101,11 +103,14 @@ namespace SmartCommerce.API.Controllers
                     return BadRequest("Invalid ParentId");
             }
 
+            if (CreatesCycle(allCategories, id, dto.ParentId))
+                return BadRequest("Circular hierarchy detected");
+
             category.Name = dto.Name;
             category.ParentCategoryId = dto.ParentId;
 
             _repo.Update(category);
-            await _repo.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return NoContent();
         }
@@ -123,9 +128,83 @@ namespace SmartCommerce.API.Controllers
                 return BadRequest("Cannot delete category with children");
 
             _repo.Delete(category);
-            await _repo.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return NoContent();
+        }
+        [HttpGet("tree")]
+        public async Task<IActionResult> GetTree([FromQuery] int maxDepth = int.MaxValue)
+        {
+            var categories = await _repo.GetAllAsync();
+
+           
+            // Step 1: Prepare result list (root nodes)
+            var rootNodes = new List<CategoryTreeDto>();
+
+            // Step 1: Map to DTOs
+            var dtoMap = categories.ToDictionary(
+                c => c.Id,
+                c => new CategoryTreeDto
+                {
+                    Id = c.Id,
+                    Name = c.Name
+                });
+
+            // Step 3: Build tree
+            foreach (var category in categories)
+            {
+                var dto = dtoMap[category.Id];
+
+                if (category.ParentCategoryId == null)
+                {
+                    rootNodes.Add(dto);
+                }
+                else
+                {
+                    var parentDto = dtoMap[category.ParentCategoryId.Value];
+                    parentDto.Children.Add(dto);
+                }
+            }
+
+            // Apply depth limit
+            foreach (var root in rootNodes)
+            {
+                TrimDepth(root, 1, maxDepth);
+            }
+
+            return Ok(rootNodes);
+        }
+        private void TrimDepth(CategoryTreeDto node, int currentDepth, int maxDepth)
+        {
+            if (currentDepth >= maxDepth)
+            {
+                node.Children.Clear();
+                return;
+            }
+
+            foreach (var child in node.Children)
+            {
+                TrimDepth(child, currentDepth + 1, maxDepth);
+            }
+        }
+        private bool CreatesCycle(List<Category> categories, int categoryId, int? newParentId)
+        {
+            if (newParentId == null)
+                return false;
+
+            var currentParentId = newParentId;
+
+            while (currentParentId != null)
+            {
+                if (currentParentId == categoryId)
+                    return true;
+
+                currentParentId = categories
+                    .First(c => c.Id == currentParentId)
+                    .ParentCategoryId;
+            }
+
+            return false;
         }
     }
 }

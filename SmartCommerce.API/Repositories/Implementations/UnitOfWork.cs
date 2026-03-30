@@ -1,21 +1,19 @@
 ﻿using SmartCommerce.API.Data;
-using SmartCommerce.API.Entities;
 using SmartCommerce.API.Repositories.Interfaces;
 
 namespace SmartCommerce.API.Repositories.Implementations
 {
-    public class OrderRepository : IOrderRepository
+    public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
 
-        public OrderRepository(AppDbContext context)
+        public UnitOfWork(AppDbContext context)
         {
             _context = context;
         }
-
-        public async Task AddAsync(Order order)
+        public async Task<int> SaveChangesAsync()
         {
-            await _context.Orders.AddAsync(order);
+            return await _context.SaveChangesAsync();
         }
     }
 }

@@ -17,6 +17,6 @@ namespace SmartCommerce.API.Repositories.Interfaces
         void Delete(Category category);
         Task<bool> HasChildrenAsync(int id);
 
-        Task SaveChangesAsync();
+        
     }
 }

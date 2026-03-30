@@ -53,9 +53,6 @@ namespace SmartCommerce.API.Repositories.Implementations
             return await _context.Categories
                 .AnyAsync(c => c.ParentCategoryId == id);
         }
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
+        
     }
 }

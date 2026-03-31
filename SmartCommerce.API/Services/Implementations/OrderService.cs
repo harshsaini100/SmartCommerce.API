@@ -85,14 +85,16 @@ namespace SmartCommerce.API.Services.Implementations
 
             await _orderRepo.AddAsync(order);
 
-            try
-            {
+            //TODO: Remove try catch permanently after confirming global exception handling middleware is working for concurrency excepion and others
+            
+            //try
+            //{
                 await _unitOfWork.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return ServiceResult<OrderResultDto>.Failure("Stock updated by another user. Retry.");
-            }
+            //}
+            //catch (DbUpdateConcurrencyException)
+            //{
+            //    return ServiceResult<OrderResultDto>.Failure("Stock updated by another user. Retry.");
+            //}
             return ServiceResult<OrderResultDto>.SuccessResult(new OrderResultDto { OrderId = order.Id, TotalAmount = order.TotalAmount });
         }
     }

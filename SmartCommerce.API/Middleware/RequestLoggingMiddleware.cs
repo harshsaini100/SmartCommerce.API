@@ -1,29 +1,25 @@
-﻿using System.Diagnostics;
-
-public class RequestLoggingMiddleware
+﻿public class RequestLoggingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<RequestLoggingMiddleware> _logger;
 
-    public RequestLoggingMiddleware(RequestDelegate next)
+    public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
-    public async Task Invoke(HttpContext context)
+    public async Task InvokeAsync(HttpContext context)
     {
-        var stopwatch = Stopwatch.StartNew();
+        // BEFORE request goes to next middleware / controller
+        _logger.LogInformation("Incoming Request: {method} {url}",
+            context.Request.Method,
+            context.Request.Path);
 
-        var method = context.Request.Method;
-        var path = context.Request.Path;
+        await _next(context); // 🔥 VERY IMPORTANT
 
-        await _next(context);
-
-        stopwatch.Stop();
-
-        var statusCode = context.Response.StatusCode;
-
-        Console.WriteLine(
-            $"[{DateTime.UtcNow}] {method} {path} → {statusCode} in {stopwatch.ElapsedMilliseconds} ms"
-        );
+        // AFTER response comes back
+        _logger.LogInformation("Outgoing Response: {statusCode}",
+            context.Response.StatusCode);
     }
 }
